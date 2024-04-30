@@ -100,7 +100,3 @@ To run the application, you can use the following commands:
 - **Development Mode:** `yarn dev`
 - **Build:** `yarn build`
 - **Start:** `yarn start`
-
-```
-
-```
