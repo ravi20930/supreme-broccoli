@@ -1,4 +1,4 @@
-import { Dialect, Sequelize } from "sequelize";
+import { Dialect, Sequelize, Transaction } from "sequelize";
 
 // Extract database credentials and environment variables
 const {
@@ -56,4 +56,10 @@ export const connectDb = async (alter: boolean = false): Promise<void> => {
     console.error("Unable to connect to the database: ", error);
     process.exit(1);
   }
+};
+
+export type { Transaction };
+
+export const getTransaction = (): Promise<Transaction> => {
+  return sequelize.transaction();
 };

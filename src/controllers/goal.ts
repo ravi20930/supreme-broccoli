@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { responseHandler, throwError } from "../utils/handler";
 import { Category } from "../models/Goal";
 import * as GoalService from "../services/goal";
+import { getTransaction } from "../config/database";
 
 export const createGoal = async (
   req: Request,
@@ -36,20 +37,30 @@ export const updateGoal = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
+  const t = await getTransaction();
   try {
     const { id } = req.params;
-    const { title, description, targetCompletionDate, category, completed } =
-      req.body;
-    await GoalService.updateGoal(id, {
+    const {
       title,
       description,
       targetCompletionDate,
       category,
       completed,
+      isPublic,
+    } = req.body;
+    await GoalService.updateGoal(t, id, {
+      title,
+      description,
+      targetCompletionDate,
+      category,
+      completed,
+      isPublic,
     });
+    await t.commit();
     const response = responseHandler(200, "Goal updated successfully.");
     res.status(response.statusCode).json(response);
   } catch (err) {
+    t.rollback();
     next(err);
   }
 };
@@ -74,15 +85,18 @@ export const markGoalCompleted = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
+  const t = await getTransaction();
   try {
     const { id } = req.params;
-    await GoalService.markGoalCompleted(id);
+    await GoalService.markGoalCompleted(t, id);
     const response = responseHandler(
       200,
       "Goal marked as completed successfully."
     );
+    await t.commit();
     res.status(response.statusCode).json(response);
   } catch (err) {
+    t.rollback();
     next(err);
   }
 };

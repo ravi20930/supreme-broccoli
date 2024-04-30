@@ -7,6 +7,7 @@ interface UserAttributes {
   phone?: string | null;
   email?: string;
   googleId: string | null;
+  totalPoints: number;
 }
 
 class User extends Model<UserAttributes> implements UserAttributes {
@@ -19,6 +20,8 @@ class User extends Model<UserAttributes> implements UserAttributes {
   public email!: string;
 
   public googleId!: string | null;
+
+  public totalPoints!: number;
 }
 
 User.init(
@@ -43,6 +46,11 @@ User.init(
     googleId: {
       type: DataTypes.STRING,
       allowNull: true,
+    },
+    totalPoints: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
     },
   },
   {

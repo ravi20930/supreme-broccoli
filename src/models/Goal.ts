@@ -18,6 +18,8 @@ interface GoalAttributes {
   category: Category;
   completed?: boolean;
   userId: string;
+  pointsEarned?: number;
+  isPublic?: boolean;
 }
 
 class Goal extends Model<GoalAttributes> implements GoalAttributes {
@@ -28,6 +30,8 @@ class Goal extends Model<GoalAttributes> implements GoalAttributes {
   public category!: Category;
   public completed!: boolean;
   public userId!: string;
+  public pointsEarned!: number;
+  public isPublic!: boolean;
 }
 
 Goal.init(
@@ -68,6 +72,16 @@ Goal.init(
         model: User,
         key: "id",
       },
+    },
+    pointsEarned: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
+    isPublic: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
     },
   },
   {
