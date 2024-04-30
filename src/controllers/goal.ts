@@ -11,12 +11,27 @@ export const createGoal = async (
 ): Promise<void> => {
   try {
     const { id: userId } = req.user;
-    const { title, description, targetCompletionDate, category } = req.body;
+    const {
+      title,
+      description,
+      targetCompletionDate,
+      category,
+      isPublic,
+      recurring,
+      recurrenceFrequency,
+      recurrenceStartDate,
+      recurrenceEndDate,
+    } = req.body;
     if (!title || !description || !targetCompletionDate || !category) {
       throwError(400, "Missing required fields in the payload");
     }
     if (!Object.values(Category).includes(category)) {
       throwError(400, "Invalid category provided");
+    }
+    if (recurring) {
+      if (!recurrenceFrequency || !recurrenceStartDate || !recurrenceEndDate) {
+        throwError(400, "Missing required recurring parameters");
+      }
     }
     const goal = await GoalService.createGoal({
       title,
@@ -24,6 +39,11 @@ export const createGoal = async (
       targetCompletionDate,
       category,
       userId,
+      isPublic,
+      recurring,
+      recurrenceFrequency,
+      recurrenceStartDate,
+      recurrenceEndDate,
     });
     const response = responseHandler(200, "Goal created successfully.", goal);
     res.status(response.statusCode).json(response);
@@ -45,17 +65,24 @@ export const updateGoal = async (
       description,
       targetCompletionDate,
       category,
-      completed,
       isPublic,
+      recurring,
+      recurrenceFrequency,
+      recurrenceStartDate,
+      recurrenceEndDate,
     } = req.body;
-    await GoalService.updateGoal(t, id, {
-      title,
-      description,
-      targetCompletionDate,
-      category,
-      completed,
-      isPublic,
-    });
+
+    const goal = await GoalService.findGoalById(id);
+    const isRecurringUpdated =
+      recurring !== undefined && recurring !== goal!.recurring && recurring;
+
+    if (isRecurringUpdated) {
+      if (!recurrenceFrequency || !recurrenceStartDate || !recurrenceEndDate) {
+        throwError(400, "Missing required recurring parameters");
+      }
+    }
+
+    await GoalService.updateGoal(t, goal!, req.body);
     await t.commit();
     const response = responseHandler(200, "Goal updated successfully.");
     res.status(response.statusCode).json(response);
@@ -88,10 +115,16 @@ export const markGoalCompleted = async (
   const t = await getTransaction();
   try {
     const { id } = req.params;
-    await GoalService.markGoalCompleted(t, id);
+    const isCompleteParam = req.query.isComplete as string | undefined;
+    const isCompleted = isCompleteParam
+      ? isCompleteParam.toLowerCase() === "true" || isCompleteParam === "1"
+      : undefined;
+    console.log(isCompleted, "========================");
+    const goal = await GoalService.markGoalCompleted(t, id, isCompleted);
     const response = responseHandler(
       200,
-      "Goal marked as completed successfully."
+      "Goal marked as completed successfully.",
+      goal
     );
     await t.commit();
     res.status(response.statusCode).json(response);

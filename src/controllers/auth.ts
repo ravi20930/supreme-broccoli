@@ -1,9 +1,13 @@
 import { Request, Response, NextFunction } from "express";
 import { log, error } from "../utils/logger";
-import { responseHandler } from "../utils/handler";
+import { responseHandler, throwError } from "../utils/handler";
 import { generateOAuthClient, generateOAuthUrl } from "../config/google";
 import { generateToken } from "../utils/auth";
-import { findOrCreateByGoogleId } from "../services/user";
+import {
+  checkPassword,
+  createByUname,
+  findOrCreateByGoogleId,
+} from "../services/user";
 // const { GOOGLE_AUTH_SUCCESS_URL } = process.env;
 
 export const googleLogin = async (
@@ -52,6 +56,51 @@ export const googleSignInCallback = async (
     const token = generateToken(user, "access");
 
     const response = responseHandler(200, "Google sign in successful.", {
+      token,
+    });
+    res.status(response.statusCode).json(response);
+  } catch (err) {
+    error(req, err);
+    next(err);
+  }
+};
+
+export const signUp = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      throwError(400, "Username and password are required");
+    }
+    await createByUname(email, password);
+    const response = responseHandler(200, "User successfully created.");
+    res.status(response.statusCode).json(response);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const normalSignIn = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { email, password } = req.body;
+
+    // Check if the username and password are provided
+    if (!email || !password) {
+      throwError(400, "Email and password are required");
+    }
+    const { user, passwordMatch } = await checkPassword(email, password);
+    if (!passwordMatch) {
+      throwError(401, "Invalid username or password");
+    }
+    const token = generateToken(user!, "access");
+    const response = responseHandler(200, "Sign in successful.", {
       token,
     });
     res.status(response.statusCode).json(response);

@@ -1,10 +1,11 @@
+import { isSameDay } from "date-fns";
 import { throwError } from "../utils/handler";
 import { Goal, User } from "../models";
-import { Category } from "../models/Goal";
+import { Category, RecurrenceFrequency } from "../models/Goal";
 import { getPagination, getPagingData } from "../utils/pagination";
-import { Transaction } from "../config/database";
+import { Transaction, getOp } from "../config/database";
 
-const findGoalById = async (goalId: string) => {
+export const findGoalById = async (goalId: string) => {
   const uuidRegex =
     /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
   if (!uuidRegex.test(goalId)) {
@@ -24,35 +25,31 @@ export const createGoal = async (data: {
   category: Category;
   userId: string;
   isPublic: boolean;
+  recurring?: boolean;
+  recurrenceFrequency?: RecurrenceFrequency;
+  recurrenceStartDate?: Date;
+  recurrenceEndDate?: Date;
 }) => {
   return Goal.create(data);
 };
 
 export const updateGoal = async (
   t: Transaction,
-  goalId: string,
+  goal: Goal,
   data: {
     title?: string;
     description?: string;
     targetCompletionDate?: Date;
     category?: Category;
-    completed?: boolean;
     isPublic?: boolean;
+    recurring?: boolean;
+    recurrenceFrequency?: RecurrenceFrequency;
+    recurrenceStartDate?: Date;
+    recurrenceEndDate?: Date;
   }
 ) => {
-  const goal = await findGoalById(goalId);
-  if (goal) {
-    // check completed status
-    const isCompletedUpdated =
-      data.completed !== undefined && data.completed !== goal.completed;
-
-    await goal.update(data, { transaction: t });
-
-    if (isCompletedUpdated) {
-      await updatePoints(t, goal, data.completed!); // update points based on the new completed status
-    }
-    return goal;
-  }
+  await goal.update(data, { transaction: t });
+  return goal;
 };
 
 export const deleteGoal = async (goalId: string) => {
@@ -89,8 +86,7 @@ const updatePoints = async (t: Transaction, goal: Goal, decrease: boolean) => {
   if (!decrease) {
     console.log("decreasing...");
     pointsEarned *= -1;
-  }
-  console.log("increasing...");
+  } else console.log("increasing...");
 
   goal.pointsEarned += pointsEarned;
   await goal.save({ transaction: t });
@@ -100,7 +96,10 @@ const updatePoints = async (t: Transaction, goal: Goal, decrease: boolean) => {
     const completedGoals = await Goal.findAll({
       where: {
         userId: goal.userId,
-        completed: true,
+        // completed: true,
+        pointsEarned: {
+          [getOp().gt]: 0,
+        },
       },
       attributes: ["pointsEarned"],
       transaction: t,
@@ -115,14 +114,126 @@ const updatePoints = async (t: Transaction, goal: Goal, decrease: boolean) => {
   }
 };
 
-export const markGoalCompleted = async (t: Transaction, goalId: string) => {
-  const goal = await findGoalById(goalId);
-  if (goal && !goal.completed) {
-    await goal.update({ completed: true }, { transaction: t });
-    console.log("updating points.....");
-    await updatePoints(t, goal, true);
+const handleRecurringGoalCompletion = async (
+  goal: Goal,
+  t: Transaction,
+  wheel: boolean = true
+) => {
+  const {
+    recurrenceFrequency,
+    targetCompletionDate,
+    recurrenceStartDate,
+    recurrenceEndDate,
+  } = goal;
+
+  const today = new Date();
+  if (today < new Date(recurrenceStartDate)) {
+    throwError(400, "Recurring goal start date has not arrived yet.");
   }
-  console.log("already completed.....");
+  //   if (recurrenceEndDate && new Date() > new Date(recurrenceEndDate)) {
+  //     throwError(400, "Recurring goal end date has been reached.");
+  //   }
+
+  if (wheel) {
+    // move to the next occurrence
+    const nextOccurrence = calculateNextOccurrence(
+      recurrenceFrequency,
+      targetCompletionDate || recurrenceStartDate
+    );
+
+    if (nextOccurrence) {
+      if (recurrenceEndDate && nextOccurrence > new Date(recurrenceEndDate)) {
+        goal.completed = true; // mark as completed if next occurrence exceeds end date
+      } else {
+        goal.targetCompletionDate = nextOccurrence;
+      }
+    } else {
+      throwError(400, "Next occurrence cannot be calculated.");
+    }
+  } else {
+    // move to the previous occurrence
+    let previousDate = new Date(targetCompletionDate || recurrenceStartDate);
+    switch (recurrenceFrequency) {
+      case RecurrenceFrequency.Daily:
+        previousDate.setDate(previousDate.getDate() - 1);
+        break;
+      case RecurrenceFrequency.Weekly:
+        previousDate.setDate(previousDate.getDate() - 7);
+        break;
+      case RecurrenceFrequency.Monthly:
+        previousDate.setMonth(previousDate.getMonth() - 1);
+        break;
+      default:
+        break;
+    }
+    goal.targetCompletionDate = previousDate;
+    goal.completed = false; // revert to incomplete
+  }
+
+  await goal.save({ transaction: t });
+  return goal;
+};
+
+const calculateNextOccurrence = (
+  frequency: RecurrenceFrequency,
+  lastCompletionDate: Date
+): Date | null => {
+  const nextOccurrence = new Date(lastCompletionDate);
+
+  switch (frequency) {
+    case RecurrenceFrequency.Daily:
+      nextOccurrence.setDate(nextOccurrence.getDate() + 1);
+      break;
+    case RecurrenceFrequency.Weekly:
+      nextOccurrence.setDate(nextOccurrence.getDate() + 7);
+      break;
+    case RecurrenceFrequency.Monthly:
+      nextOccurrence.setMonth(nextOccurrence.getMonth() + 1);
+      // adjust the date to the last day of the month
+      nextOccurrence.setDate(
+        new Date(
+          nextOccurrence.getFullYear(),
+          nextOccurrence.getMonth() + 1,
+          0
+        ).getDate()
+      );
+      break;
+  }
+  return nextOccurrence;
+};
+
+export const markGoalCompleted = async (
+  t: Transaction,
+  goalId: string,
+  complete: boolean = true
+) => {
+  let goal = await findGoalById(goalId);
+
+  if (goal!.recurring) {
+    // complete is wheel for moving days annd points forward backward for a reccurring goal
+    goal = await handleRecurringGoalCompletion(goal!, t, complete);
+    if (!complete && !goal!.completed) {
+      // subtract points if latest goal is undone in reccuring goal
+      console.log("subtracting points...");
+      await updatePoints(t, goal!, false);
+    } else if (complete && !goal.completed) {
+      // add points if completing a recurring goal
+      console.log("adding points...");
+      await updatePoints(t, goal!, true);
+    }
+  } else {
+    if (!complete && goal!.completed) {
+      // marking goal as incomplete
+      await goal!.update({ completed: false }, { transaction: t });
+      console.log("subtracting points...");
+      await updatePoints(t, goal!, false);
+    } else if (complete && !goal!.completed) {
+      // marking goal as completed
+      await goal!.update({ completed: true }, { transaction: t });
+      console.log("adding points...");
+      await updatePoints(t, goal!, true);
+    }
+  }
   return goal;
 };
 

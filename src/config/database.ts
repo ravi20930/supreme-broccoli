@@ -1,4 +1,4 @@
-import { Dialect, Sequelize, Transaction } from "sequelize";
+import { Dialect, Sequelize, Transaction, Op } from "sequelize";
 
 // Extract database credentials and environment variables
 const {
@@ -62,4 +62,8 @@ export type { Transaction };
 
 export const getTransaction = (): Promise<Transaction> => {
   return sequelize.transaction();
+};
+
+export const getOp = () => {
+  return Op;
 };

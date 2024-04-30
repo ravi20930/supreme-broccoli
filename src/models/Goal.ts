@@ -10,6 +10,12 @@ export enum Category {
   Relationships = "Relationships",
 }
 
+export enum RecurrenceFrequency {
+  Daily = "daily",
+  Weekly = "weekly",
+  Monthly = "monthly",
+}
+
 interface GoalAttributes {
   id?: string;
   title: string;
@@ -20,6 +26,10 @@ interface GoalAttributes {
   userId: string;
   pointsEarned?: number;
   isPublic?: boolean;
+  recurring?: boolean;
+  recurrenceFrequency?: RecurrenceFrequency;
+  recurrenceStartDate?: Date;
+  recurrenceEndDate?: Date;
 }
 
 class Goal extends Model<GoalAttributes> implements GoalAttributes {
@@ -32,6 +42,10 @@ class Goal extends Model<GoalAttributes> implements GoalAttributes {
   public userId!: string;
   public pointsEarned!: number;
   public isPublic!: boolean;
+  public recurring!: boolean;
+  public recurrenceFrequency!: RecurrenceFrequency;
+  public recurrenceStartDate!: Date;
+  public recurrenceEndDate!: Date;
 }
 
 Goal.init(
@@ -82,6 +96,26 @@ Goal.init(
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false,
+    },
+    recurring: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+    recurrenceFrequency: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      validate: {
+        isIn: [Object.values(RecurrenceFrequency)],
+      },
+    },
+    recurrenceStartDate: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    recurrenceEndDate: {
+      type: DataTypes.DATE,
+      allowNull: true,
     },
   },
   {

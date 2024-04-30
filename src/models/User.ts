@@ -4,16 +4,19 @@ import { sequelize } from "../config/database";
 interface UserAttributes {
   id?: string;
   username?: string | null;
+  password?: string | null;
   phone?: string | null;
   email?: string;
   googleId: string | null;
-  totalPoints: number;
+  totalPoints?: number;
 }
 
 class User extends Model<UserAttributes> implements UserAttributes {
   public id!: string;
 
   public username!: string | null;
+
+  public password!: string | null;
 
   public phone!: string | null;
 
@@ -32,6 +35,10 @@ User.init(
       defaultValue: DataTypes.UUIDV4,
     },
     username: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    password: {
       type: DataTypes.STRING,
       allowNull: true,
     },
