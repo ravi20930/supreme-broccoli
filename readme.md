@@ -8,7 +8,7 @@ To set up the project, follow these steps:
    yarn install
    ```
 
-2. Set up environment variables by creating a `.env` file in the root directory and adding the required variables.
+2. Set up environment variables by creating a `.env` file in the root directory and adding the required variables from sample.env.
 
 # APIs
 
