@@ -100,3 +100,7 @@ To run the application, you can use the following commands:
 - **Development Mode:** `yarn dev`
 - **Build:** `yarn build`
 - **Start:** `yarn start`
+
+# Note
+
+Google credentials in env are not needed if you are doing normal signup and signin
