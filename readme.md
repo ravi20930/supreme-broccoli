@@ -1,4 +1,3 @@
-````markdown
 # Project Setup
 
 To set up the project, follow these steps:
@@ -7,6 +6,7 @@ To set up the project, follow these steps:
    ```bash
    yarn install
    ```
+
 ````
 
 2. Set up environment variables by creating a `.env` file in the root directory and adding the required variables.
@@ -93,7 +93,4 @@ To set up the project, follow these steps:
 - **List User Goals:** `GET /api/goal`
 
 - **List Public Goals:** `GET /api/goal/public`
-
-```
-
-```
+````
