@@ -3,11 +3,10 @@
 To set up the project, follow these steps:
 
 1. Install dependencies:
+
    ```bash
    yarn install
    ```
-
-````
 
 2. Set up environment variables by creating a `.env` file in the root directory and adding the required variables.
 
@@ -97,4 +96,7 @@ To set up the project, follow these steps:
 ```
 
 ```
-````
+
+```
+
+```
