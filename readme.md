@@ -1,4 +1,3 @@
-````
 # Project Setup
 
 To set up the project, follow these steps:
@@ -98,3 +97,4 @@ To set up the project, follow these steps:
 ```
 
 ```
+````
