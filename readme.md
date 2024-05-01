@@ -89,6 +89,12 @@ To set up the project, follow these steps:
 
 - **Mark Goal as Completed:** `PUT /api/goal/:id/complete`
 
+  - **Optional Query Param:**
+
+    ```
+    isComplete: true/false/0/1
+    ```
+
 - **List User Goals:** `GET /api/goal`
 
 - **List Public Goals:** `GET /api/goal/public`
