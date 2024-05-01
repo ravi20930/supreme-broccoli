@@ -87,9 +87,9 @@ To set up the project, follow these steps:
 
 - **Delete Goal:** `DELETE /api/goal/:id`
 
-- **Mark Goal as Completed:** `PUT /api/goal/:id/complete`
+- **Mark Goal as Completed or revert completed:** `PUT /api/goal/:id/complete`
 
-  - **Optional Query Param:**
+  - **Optional Query Param pass isComplete to false to revert back a completed goal:**
 
     ```
     isComplete: true/false/0/1
